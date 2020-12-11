@@ -13,63 +13,53 @@ function display(event) {
     document.getElementById("lower-result").value += event.target.innerText // un div n'a pas de value, il faut faire innerHTML
 }
 
-function nonPriorityOperation(numbers, operators, operationFunction) {
-    const result = operationFunction(parseFloat(numbers[0]), parseFloat(numbers[1]));
-    numbers[0] = result;
-    numbers.splice(1, 1);
-    operators.splice(0, 1);
+function operate(numbers, operators, index, operationFunction) {
+    const result = operationFunction(numbers[index], numbers[index + 1]);
+    numbers[index] = result;
+    numbers.splice(index + 1, 1);
+    operators.splice(index, 1);
     return result
+
 }
 
-function priorityOperation(numbers, operators, position, priorityPositions, operationFunction){
-    const result = operationFunction(numbers[position], numbers[position + 1]);
-    numbers[position] = result;
-    numbers.splice(position + 1, 1);
-    operators.splice(position, 1);
-    priorityPositions.splice(0, 1);
-    priorityPositions = priorityPositions.map(function (priorityOperator) {
-        return priorityOperator - 1
-    });
-    return {"result": result, "priorityPositions": priorityPositions}
+function findNextOperatorWithIndex(operators) {
+    const firstMulti = operators.indexOf("x");
+    if (firstMulti !== -1) {
+        return {"operator": "x", "operatorIndex": firstMulti}
+    }
+    const firstDivision = operators.indexOf("÷");
+    if (firstDivision !== -1) {
+        return {"operator": "÷", "operatorIndex": firstDivision}
+    }
+    return {"operator": operators[0], "operatorIndex": 0};
 }
+
 function solve() {
     const operation = document.getElementById("lower-result").value;
-    const numbers = operation.split(/[-\+x÷]/); // [] pour "ou"
+    const numbers = operation.split(/[-\+x÷]/).map(number => parseFloat(number)); // [] pour "ou"
     const operators = operation.split(/\d/).filter(function (element) {
         return element !== ""
     });
     // d pour decimals et operators.filter(element => element != "")
     let result = 0;
-    let priorityPositions = [];
-    operators.forEach(function(operator, index ){
-        if (operator === "x" || operator ==="÷") {
-            priorityPositions.push(index)
-        }
-    }
-    );
-
     while (operators.length > 0) {
-        while (priorityPositions.length > 0) {
-            let position = priorityPositions[0];
-            let firstPriorityOperator = operators[position];
-            let resultAndPriorityPositions;
-            if (firstPriorityOperator === "x") {
-                resultAndPriorityPositions = priorityOperation(numbers, operators, position, priorityPositions, multiply);
-            } else if (firstPriorityOperator === "÷") {
-               resultAndPriorityPositions = priorityOperation(numbers, operators, position, priorityPositions, divide);
-            }
-            result = resultAndPriorityPositions["result"];
-            priorityPositions = resultAndPriorityPositions["priorityPositions"]
+        let nextOperatorWithIndex = findNextOperatorWithIndex(operators);
+        let nextOperator = nextOperatorWithIndex["operator"];
+        let nextIndex = nextOperatorWithIndex["operatorIndex"];
+        let operationFunction;
+        if (nextOperator === "x") {
+            operationFunction = multiply
+        } else if (nextOperator === "÷") {
+            operationFunction = divide
+        } else if (nextOperator === "+") {
+            operationFunction = add
+        } else if (nextOperator === "-") {
+            operationFunction = subtract
         }
-        let firstOperator = operators[0];
-        if (firstOperator === "+") {
-            result = nonPriorityOperation(numbers, operators, add)
-        } else if (firstOperator === "-") {
-            result = nonPriorityOperation(numbers, operators, subtract)
-        }
+        result = operate(numbers, operators, nextIndex, operationFunction);
     }
 
-    document.getElementById("upper-result").value = numbers[0];
+    document.getElementById("upper-result").value = result;
     document.getElementById("lower-result").value = ""
 }
 
